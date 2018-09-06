@@ -1,0 +1,24 @@
+{
+    "name": "linedubbed",
+    "description": "DUB package tester",
+
+    "copyright": "Copyright © 2018  0xEAB",
+    "license": "BSL-1.0",
+
+    "authors": [
+        "Elias Batek (0xEAB)"
+    ],
+
+    "targetPath": "bin",
+    "stringImportPaths": ["."],
+
+    "preGenerateCommands" : [
+        "rdmd --eval=\"auto dir=environment.get(\\\"DUB_PACKAGE_DIR\\\"); auto gitVer = (\\\"git -C \\\"~dir~\\\" describe --tags\\\").executeShell; (gitVer.status == 0 ? gitVer.output.strip : \\\"v\\\" ~ dir.dirName.baseName.findSplitAfter(environment.get(\\\"DUB_ROOT_PACKAGE\\\")~\\\"-\\\")[1]).ifThrown(\\\"0.0.0\\\").chain(newline).to!string.toFile(dir.buildPath(\\\"version.txt\\\"));\""
+    ],
+
+    "buildTypes": {
+        "io": {
+            "buildOptions": ["inline", "optimize"]
+        }
+    }
+}
