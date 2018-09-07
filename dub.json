@@ -20,5 +20,13 @@
         "io": {
             "buildOptions": ["inline", "optimize"]
         }
+    },
+
+    "libs-posix": [
+        "sqlite3"
+    ],
+
+    "dependencies": {
+        "arsd-official:sqlite": "~>2.1.1"
     }
 }
