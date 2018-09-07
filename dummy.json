@@ -1,0 +1,8 @@
+{
+    "name": "linedubbed-dummy",
+    "description": "Dummy package for testing packages",
+    "sourceFiles": ["dummy.d"],
+    "dependencies": {
+        "%s": "==%s"
+    }
+}

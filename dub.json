@@ -22,7 +22,7 @@
         }
     },
 
-    "libs-posix": [
+    "libs": [
         "sqlite3"
     ],
 

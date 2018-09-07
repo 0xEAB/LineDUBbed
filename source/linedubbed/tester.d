@@ -8,7 +8,7 @@ module linedubbed.tester;
 
 import std.conv : to;
 import std.exception : enforce;
-import std.process : execute;
+import std.process : Config, execute;
 import linedubbed.registry;
 
 struct DUBConfig
@@ -30,6 +30,7 @@ struct TestResult
     TestStatus status;
     Compiler compiler;
     string buildLog;
+    string testDirectory;
 }
 
 enum TestStatus
@@ -61,35 +62,43 @@ string getCompilerVersionString(string compilerPath) @safe
     return txt;
 }
 
-TestResult fetch(DUBConfig dub, DUBPackage package_) @safe
+TestResult create(DUBConfig dub, DUBPackage package_, string testDirectory)
 {
-    // dfmt off
-    auto args = [
-        dub.path,
-        "--cache=" ~ dub.cache,
-        "--registry=" ~ dub.registryURL,
-        "fetch", package_.name,
-        "--version=" ~ package_.version_
-    ];
-    // dfmt on
+    import std.file : exists, mkdir, rmdirRecurse;
+    import std.path : buildPath;
+    import std.stdio : File;
 
-    auto cmd = execute(args);
+    if (testDirectory.exists)
+    {
+        testDirectory.rmdirRecurse();
+    }
 
-    enforce(cmd.status == 0, "Failed to fetch: " ~ package_.to!string ~ "\n" ~ cmd.output);
-    return TestResult(package_, TestStatus.fetched, Compiler(), null);
+    testDirectory.mkdir();
+
+    File dubJson = File(testDirectory.buildPath("dub.json"), "w");
+    dubJson.writef(import("dummy.json"), package_.name, package_.version_);
+    dubJson.flush();
+
+    File dummyD = File(testDirectory.buildPath("dummy.d"), "w");
+    dummyD.write(import("dummy.d"));
+    dummyD.flush();
+
+    return TestResult(package_, TestStatus.fetched, Compiler(), null, testDirectory);
 }
 
-TestResult build(DUBConfig dub, DUBPackage package_, Compiler compiler, bool force = false) @safe
+TestResult build(DUBConfig dub, TestResult createdTest, Compiler compiler, bool force = false) @safe
 {
+    alias tr = createdTest;
+    alias package_ = createdTest.dubPackage;
+
     // dfmt off
     auto args = [
         dub.path,
-        "build", package_.name,
+        "build",
         "--cache=" ~ dub.cache, // DUB issue#1556
         "--registry=" ~ dub.registryURL,
         "--build=plain",
         "--compiler=" ~ compiler.path,
-        //"--version=" ~ package_.version_, // DUB issue#1557
     ];
     // dfmt on
 
@@ -98,7 +107,10 @@ TestResult build(DUBConfig dub, DUBPackage package_, Compiler compiler, bool for
         args ~= "--force";
     }
 
-    auto cmd = execute(args);
+    auto cmd = execute(args, null, Config.none, ulong.max, tr.testDirectory);
     immutable status = (cmd.status == 0) ? TestStatus.success : TestStatus.failure;
-    return TestResult(package_, status, compiler, cmd.output);
+    tr.status = status;
+    tr.compiler = compiler;
+    tr.buildLog = cmd.output;
+    return tr;
 }

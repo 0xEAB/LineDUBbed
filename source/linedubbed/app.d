@@ -7,8 +7,9 @@
 module linedubbed.app;
 
 import std.conv : to;
+import std.file : exists, mkdirRecurse;
 import std.getopt : config, defaultGetoptFormatter, getopt, GetoptResult;
-import std.path : buildPath;
+import std.path : buildPath, dirName;
 import std.stdio : File, stderr, stdout;
 
 import linedubbed.daemon;
@@ -25,6 +26,7 @@ void main(string[] args)
     string optDUBListRegistryBaseURL;
     string optDUBRegistryBaseURL;
     string optSqliteDBPath;
+    string optTestDirectory;
 
     // dfmt off
 	GetoptResult opt = getopt(
@@ -36,6 +38,7 @@ void main(string[] args)
         "dub", "DUB executable path", &optDUBPath,
         "registry", "DUB registry baseURL", &optDUBRegistryBaseURL,
         "lregistry", "baseURL of DUB registry to fetch package list from", &optDUBListRegistryBaseURL,
+        "directory", "Directory to create tests in", &optTestDirectory,
         "version", "Display the version of this program.", &optPrintVersionInfo
 	);
 	// dfmt on
@@ -94,8 +97,19 @@ void main(string[] args)
         optDUBListRegistryBaseURL = optDUBRegistryBaseURL;
     }
 
+    if (optTestDirectory is null)
+    {
+        optTestDirectory = thisExeDir.buildPath("lndtests");
+    }
+
+    immutable string testDirectoryBase = optTestDirectory.dirName;
+    if (!testDirectoryBase.exists)
+    {
+        testDirectoryBase.mkdirRecurse();
+    }
+
     run(optDUBListRegistryBaseURL, optCompilerPath, DUBConfig(optDUBPath,
-            optDUBCachePath, optDUBRegistryBaseURL), optSqliteDBPath, stdout);
+            optDUBCachePath, optDUBRegistryBaseURL), optTestDirectory, optSqliteDBPath, stdout);
 }
 
 /++
@@ -103,7 +117,6 @@ void main(string[] args)
  +/
 string thisExeDir() @safe
 {
-    import std.path : dirName;
     import std.file : thisExePath;
 
     return thisExePath.dirName;

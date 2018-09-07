@@ -20,7 +20,7 @@ public
     import linedubbed.tester : DUBConfig;
 }
 
-void run(string registry, string dCompilerPath, DUBConfig dub, string sqliteDBPath, File log)
+void run(string registry, string dCompilerPath, DUBConfig dub, string testsDir, string sqliteDBPath, File log)
 {
     Compiler compiler = getCompilerHandle(dCompilerPath);
     log.writeln(`Selected compiler: "`, compiler.id, `"`);
@@ -43,12 +43,12 @@ void run(string registry, string dCompilerPath, DUBConfig dub, string sqliteDBPa
     immutable untestedC = untested.length - 1;
     foreach (idx, p; untested)
     {
-        log.writef("%04u/%u  |  %s  |  fetch", idx, untestedC, p.name.leftJustify(20)[0 .. 20]);
+        log.writef("%04u/%u  |  %s  |  init", idx, untestedC, p.name.leftJustify(20)[0 .. 20]);
         log.flush();
-        dub.fetch(p);
+        TestResult tr = dub.create(p, testsDir);
         log.write(" . build");
         log.flush();
-        TestResult tr = dub.build(p, compiler, true);
+        tr = dub.build(tr, compiler, false);
         log.writeln(" . ", tr.status);
         db.saveTestResult(tr);
     }
