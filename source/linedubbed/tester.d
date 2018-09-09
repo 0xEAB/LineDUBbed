@@ -30,7 +30,6 @@ struct TestResult
     TestStatus status;
     Compiler compiler;
     string buildLog;
-    string testDirectory;
 }
 
 enum TestStatus
@@ -60,57 +59,4 @@ string getCompilerVersionString(string compilerPath) @safe
     txt = txt[0 .. ((lineEnd < 0) ? $ : lineEnd)].stripRight(":");
 
     return txt;
-}
-
-TestResult create(DUBConfig dub, DUBPackage package_, string testDirectory)
-{
-    import std.file : exists, mkdir, rmdirRecurse;
-    import std.path : buildPath;
-    import std.stdio : File;
-
-    if (testDirectory.exists)
-    {
-        testDirectory.rmdirRecurse();
-    }
-
-    testDirectory.mkdir();
-
-    File dubJson = File(testDirectory.buildPath("dub.json"), "w");
-    dubJson.writef(import("dummy.json"), package_.name, package_.version_);
-    dubJson.flush();
-
-    File dummyD = File(testDirectory.buildPath("dummy.d"), "w");
-    dummyD.write(import("dummy.d"));
-    dummyD.flush();
-
-    return TestResult(package_, TestStatus.fetched, Compiler(), null, testDirectory);
-}
-
-TestResult build(DUBConfig dub, TestResult createdTest, Compiler compiler, bool force = false) @safe
-{
-    alias tr = createdTest;
-    alias package_ = createdTest.dubPackage;
-
-    // dfmt off
-    auto args = [
-        dub.path,
-        "build",
-        "--cache=" ~ dub.cache, // DUB issue#1556
-        "--registry=" ~ dub.registryURL,
-        "--build=plain",
-        "--compiler=" ~ compiler.path,
-    ];
-    // dfmt on
-
-    if (force)
-    {
-        args ~= "--force";
-    }
-
-    auto cmd = execute(args, null, Config.none, ulong.max, tr.testDirectory);
-    immutable status = (cmd.status == 0) ? TestStatus.success : TestStatus.failure;
-    tr.status = status;
-    tr.compiler = compiler;
-    tr.buildLog = cmd.output;
-    return tr;
 }

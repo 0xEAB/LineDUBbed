@@ -26,7 +26,6 @@ void main(string[] args)
     string optDUBListRegistryBaseURL;
     string optDUBRegistryBaseURL;
     string optSqliteDBPath;
-    string optTestDirectory;
 
     // dfmt off
 	GetoptResult opt = getopt(
@@ -38,7 +37,6 @@ void main(string[] args)
         "dub", "DUB executable path", &optDUBPath,
         "registry", "DUB registry baseURL", &optDUBRegistryBaseURL,
         "lregistry", "baseURL of DUB registry to fetch package list from", &optDUBListRegistryBaseURL,
-        "directory", "Directory to create tests in", &optTestDirectory,
         "version", "Display the version of this program.", &optPrintVersionInfo
 	);
 	// dfmt on
@@ -66,20 +64,7 @@ void main(string[] args)
 
     if (optDUBCachePath is null)
     {
-        // TODO: change this to "local" once dub#1556 is fixed
-        optDUBCachePath = "user";
-    }
-    else
-    {
-        // TODO: remove else block once dub#1556 is fixed
-        stderr.writeln("[!] Ignoring --cache due to DUB issue#1556");
-        optDUBCachePath = "user";
-    }
-
-    {
-        // TODO: remove this block once dub#1557 is fixed
-        stderr.writeln("[!] Cannot build specific versions due to DUB issue#1557",
-                "\n    - if there are problems regarding building wrong versions, purge your DUB caches");
+        optDUBCachePath = "local";
     }
 
     if (optSqliteDBPath is null)
@@ -97,19 +82,8 @@ void main(string[] args)
         optDUBListRegistryBaseURL = optDUBRegistryBaseURL;
     }
 
-    if (optTestDirectory is null)
-    {
-        optTestDirectory = thisExeDir.buildPath("lndtests");
-    }
-
-    immutable string testDirectoryBase = optTestDirectory.dirName;
-    if (!testDirectoryBase.exists)
-    {
-        testDirectoryBase.mkdirRecurse();
-    }
-
     run(optDUBListRegistryBaseURL, optCompilerPath, DUBConfig(optDUBPath,
-            optDUBCachePath, optDUBRegistryBaseURL), optTestDirectory, optSqliteDBPath, stdout);
+            optDUBCachePath, optDUBRegistryBaseURL), optSqliteDBPath, stdout);
 }
 
 /++

@@ -27,6 +27,11 @@
     ],
 
     "dependencies": {
-        "arsd-official:sqlite": "~>2.1.1"
-    }
+        "arsd-official:sqlite": "~>2.1.1",
+        "dub": "~>1.11.0"
+    },
+
+     "subConfigurations": {
+        "dub": "library"
+     }
 }

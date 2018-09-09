@@ -12,6 +12,7 @@ import std.string : leftJustify;
 import std.stdio : File;
 
 import linedubbed.database;
+import linedubbed.dub;
 import linedubbed.registry;
 import linedubbed.tester;
 
@@ -20,15 +21,16 @@ public
     import linedubbed.tester : DUBConfig;
 }
 
-void run(string registry, string dCompilerPath, DUBConfig dub, string testsDir, string sqliteDBPath, File log)
+void run(string registryForPackageList, string dCompilerPath, DUBConfig dub,
+        string sqliteDBPath, File log)
 {
     Compiler compiler = getCompilerHandle(dCompilerPath);
     log.writeln(`Selected compiler: "`, compiler.id, `"`);
     log.writeln("Opening DB");
     Database db = openAndInitIfNotExists(sqliteDBPath);
 
-    log.writeln("Fetching package list from ", registry);
-    auto packages = registry.getPackages();
+    log.writeln("Fetching package list from ", registryForPackageList);
+    auto packages = registryForPackageList.getPackages();
     log.writefln("Got a list of %u packages.", packages.length);
 
     log.writeln("Updating DB");
@@ -40,17 +42,30 @@ void run(string registry, string dCompilerPath, DUBConfig dub, string testsDir, 
 
     auto untested = db.determineUntestedPackages(semver).array;
     log.writefln("Found %u previously untested packages.", untested.length);
-    immutable untestedC = untested.length - 1;
-    foreach (idx, p; untested)
+
+    DUBHandle dubHandle = getDUB(dub.registryURL, dub.cache);
+
+    if (untested.length > 0)
     {
-        log.writef("%04u/%u  |  %s  |  init", idx, untestedC, p.name.leftJustify(20)[0 .. 20]);
-        log.flush();
-        TestResult tr = dub.create(p, testsDir);
-        log.write(" . build");
-        log.flush();
-        tr = dub.build(tr, compiler, false);
-        log.writeln(" . ", tr.status);
-        db.saveTestResult(tr);
+        immutable untestedC = untested.length - 1;
+
+        foreach (idx, p; untested)
+        {
+            log.writef("%04u/%u  |  %s  |  fetch .", idx, untestedC,
+                    p.name.leftJustify(20)[0 .. 20]);
+            log.flush();
+            PackageHandle ph = dubHandle.fetch(p);
+            if (ph.error)
+            {
+                log.writeln("error");
+                continue;
+            }
+            log.write(" build .");
+            log.flush();
+            TestResult tr = ph.build(compiler);
+            log.writeln(" ", tr.status);
+            db.saveTestResult(tr);
+        }
     }
 }
 
