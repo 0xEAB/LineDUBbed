@@ -44,13 +44,14 @@ void run(string registryForPackageList, string dCompilerPath, DUBConfig dub,
     log.writefln("Found %u previously untested packages.", untested.length);
 
     DUBHandle dubHandle = getDUB(dub.registryURL, dub.cache);
-
     if (untested.length > 0)
     {
         immutable untestedC = untested.length - 1;
 
         foreach (idx, p; untested)
         {
+            import std.stdio;
+            readln();
             log.writef("%04u/%u  |  %s  |  fetch .", idx, untestedC,
                     p.name.leftJustify(20)[0 .. 20]);
             log.flush();
@@ -62,7 +63,7 @@ void run(string registryForPackageList, string dCompilerPath, DUBConfig dub,
             }
             log.write(" build .");
             log.flush();
-            TestResult tr = ph.build(compiler);
+            TestResult tr = dubHandle.build(ph, compiler);
             log.writeln(" ", tr.status);
             db.saveTestResult(tr);
         }
